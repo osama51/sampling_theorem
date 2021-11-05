@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1052</width>
+    <width>1092</width>
     <height>647</height>
    </rect>
   </property>
@@ -17,13 +17,22 @@
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
      <widget class="QWidget" name="widget" native="true">
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QHBoxLayout" name="horizontalLayout" stretch="0">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetDefaultConstraint</enum>
+       </property>
        <item>
         <widget class="QSplitter" name="splitter">
          <property name="minimumSize">
           <size>
-           <width>300</width>
+           <width>0</width>
            <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>10005</width>
+           <height>16777215</height>
           </size>
          </property>
          <property name="orientation">
@@ -35,13 +44,13 @@
          <widget class="QWidget" name="widget_2" native="true">
           <property name="minimumSize">
            <size>
-            <width>300</width>
+            <width>0</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>15000</width>
+            <width>5000</width>
             <height>16777215</height>
            </size>
           </property>
@@ -50,14 +59,14 @@
             <widget class="PlotWidget" name="graphicsView_main">
              <property name="minimumSize">
               <size>
-               <width>200</width>
+               <width>0</width>
                <height>0</height>
               </size>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QGraphicsView" name="graphicsView_recovered"/>
+            <widget class="PlotWidget" name="graphicsView_recovered"/>
            </item>
            <item>
             <widget class="QGroupBox" name="groupBox_7">
@@ -73,15 +82,22 @@
                 <property name="frameShadow">
                  <enum>QFrame::Raised</enum>
                 </property>
-                <layout class="QHBoxLayout" name="horizontalLayout_2">
-                 <item>
-                  <widget class="QPushButton" name="pushButton_3">
+                <layout class="QGridLayout" name="gridLayout_3">
+                 <item row="0" column="4">
+                  <widget class="QLabel" name="slider_value">
                    <property name="text">
-                    <string>Sample</string>
+                    <string/>
                    </property>
                   </widget>
                  </item>
-                 <item>
+                 <item row="1" column="0">
+                  <widget class="QPushButton" name="pushButton_recover">
+                   <property name="text">
+                    <string>Recover</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
                   <spacer name="horizontalSpacer_2">
                    <property name="orientation">
                     <enum>Qt::Horizontal</enum>
@@ -97,14 +113,14 @@
                    </property>
                   </spacer>
                  </item>
-                 <item>
+                 <item row="1" column="2">
                   <widget class="QLabel" name="label">
                    <property name="text">
                     <string>Sampling Frequency</string>
                    </property>
                   </widget>
                  </item>
-                 <item>
+                 <item row="1" column="3">
                   <spacer name="horizontalSpacer_3">
                    <property name="orientation">
                     <enum>Qt::Horizontal</enum>
@@ -120,24 +136,33 @@
                    </property>
                   </spacer>
                  </item>
-                 <item>
+                 <item row="1" column="4">
                   <widget class="QSlider" name="horizontalSlider">
+                   <property name="minimum">
+                    <number>1</number>
+                   </property>
+                   <property name="maximum">
+                    <number>1500</number>
+                   </property>
+                   <property name="value">
+                    <number>500</number>
+                   </property>
                    <property name="orientation">
                     <enum>Qt::Horizontal</enum>
                    </property>
                   </widget>
                  </item>
-                 <item>
+                 <item row="1" column="5">
                   <spacer name="horizontalSpacer_4">
                    <property name="orientation">
                     <enum>Qt::Horizontal</enum>
                    </property>
                    <property name="sizeType">
-                    <enum>QSizePolicy::Minimum</enum>
+                    <enum>QSizePolicy::Fixed</enum>
                    </property>
                    <property name="sizeHint" stdset="0">
                     <size>
-                     <width>40</width>
+                     <width>10</width>
                      <height>20</height>
                     </size>
                    </property>
@@ -154,20 +179,20 @@
          <widget class="QGroupBox" name="groupBox">
           <property name="minimumSize">
            <size>
-            <width>150</width>
+            <width>0</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>7000</width>
+            <width>5000</width>
             <height>16777215</height>
            </size>
           </property>
           <property name="title">
            <string>Signal Composer</string>
           </property>
-          <layout class="QVBoxLayout" name="verticalLayout_5" stretch="33,0,33,0">
+          <layout class="QVBoxLayout" name="verticalLayout_5" stretch="33,6,33,30">
            <item>
             <widget class="QGraphicsView" name="graphicsView_sum">
              <property name="enabled">
@@ -189,26 +214,7 @@
             </widget>
            </item>
            <item>
-            <widget class="PlotWidget" name="graphicsView_picked">
-             <property name="backgroundBrush">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>0</red>
-                <green>0</green>
-                <blue>0</blue>
-               </color>
-              </brush>
-             </property>
-             <property name="foregroundBrush">
-              <brush brushstyle="SolidPattern">
-               <color alpha="255">
-                <red>255</red>
-                <green>255</green>
-                <blue>255</blue>
-               </color>
-              </brush>
-             </property>
-            </widget>
+            <widget class="PlotWidget" name="graphicsView_sine"/>
            </item>
            <item>
             <widget class="QGroupBox" name="groupBox_6">
@@ -252,17 +258,8 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="4" column="2">
-                  <widget class="QLineEdit" name="lineEdit"/>
-                 </item>
-                 <item row="4" column="3">
-                  <widget class="QLineEdit" name="lineEdit_2"/>
-                 </item>
-                 <item row="4" column="1">
-                  <widget class="QLineEdit" name="lineEdit_3"/>
-                 </item>
                  <item row="4" column="0">
-                  <widget class="QPushButton" name="pushButton_plotcomp">
+                  <widget class="QPushButton" name="pushButton_plotsine">
                    <property name="minimumSize">
                     <size>
                      <width>100</width>
@@ -271,6 +268,27 @@
                    </property>
                    <property name="text">
                     <string>Plot</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="4" column="1">
+                  <widget class="QSlider" name="freq_slider">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="4" column="2">
+                  <widget class="QSlider" name="mangitude_slider">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="4" column="3">
+                  <widget class="QSlider" name="phase_slider">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
                    </property>
                   </widget>
                  </item>
@@ -329,7 +347,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1052</width>
+     <width>1092</width>
      <height>21</height>
     </rect>
    </property>
@@ -399,6 +417,9 @@
    </property>
   </action>
   <action name="actionPlot">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
     <iconset>
      <normaloff>icons/signal.ico</normaloff>icons/signal.ico</iconset>
@@ -407,7 +428,7 @@
     <string>Plot</string>
    </property>
    <property name="toolTip">
-    <string>Plot</string>
+    <string>Plot/Hide</string>
    </property>
   </action>
   <action name="actionHide">
