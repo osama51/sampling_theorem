@@ -26,20 +26,26 @@ class MainApp(QMainWindow, FORM_CLASS):
         super(MainApp,self).__init__(parent)
         QMainWindow.__init__(self)
         self.setupUi(self)
+        self.handle_buttons()
 
 
         self.subsignals_list =[]
         self.composer_list=[]
+        self.sine_sliders()
         self.signals= dict()
         self.n_samples = 1000
         self.time_range = np.arange(0, 1000, 1)
+        self.sine_sliders()
+        
+    #__________________________BUTTONS_______________________#
+    
+    def handle_buttons(self):
         self.add_to_combobox.pressed.connect(self.adding_to_combobox)
         self.add_to_composer_button.pressed.connect(self.add_to_composer)
         self.Exporting_composed_button.pressed.connect(self.exporting_to_csv)
         self.delete_from_combo.pressed.connect(self.deleting_from_main_graph)
-        self.sine_sliders()
         self.actionPlot.triggered.connect(self.plot_external_wave)
-        self.actionAdd.triggered.connect(self.enlist_data)
+        self.actionAdd.triggered.connect(self.prepare_data)
         self.actionClear.triggered.connect(self.clear)
         self.samples_button.pressed.connect(self.show_sample_alone)
         self.actionSample.triggered.connect(self.show_samples_on_signal)
@@ -51,24 +57,56 @@ class MainApp(QMainWindow, FORM_CLASS):
         self.freqency_slider.valueChanged.connect(self.draw_sine_wave)
         self.magnitude_slider.valueChanged.connect(self.draw_sine_wave)
 
+    #_______________________SLIDERS_______________________#
+    
+    def sine_sliders(self):
+
+        self.phase_slider.setMinimum(0)
+        self.phase_slider.setMaximum(360)
+
+        self.magnitude_slider.setMinimum(2)
+        self.magnitude_slider.setMaximum(20)
+
+        self.freqency_slider.setMinimum(1)
+        self.freqency_slider.setMaximum(600)
+    
     def read_slider_values(self):
         self.phase = self.phase_slider.value()
         self.magnitude = self.magnitude_slider.value()
         self.frequency = self.freqency_slider.value()
-
-    def draw_sine_wave(self):
         
-        self.read_slider_values()
-        self.freq_label.setText(str(self.freqency_slider.value()))
-        self.mag_label.setText(str(self.magnitude_slider.value()))
-        self.phase_label.setText(str(self.phase_slider.value()))
+
+    #________________________COMPOSER_______________________#
+     
+    def adding_to_combobox(self):
+        self.subsignals_list.append(self.draw_sine_wave())
+        self.comboBox_subsignal.addItem(f"sine wave: {self.magnitude}Amp,{self.frequency}HZ,and {self.phase}˚ phase")
+
+    def add_to_composer(self):
+
+        if self.comboBox_subsignal.currentIndex() == 0 :
+            self.composer_list=self.subsignals_list[0]
+        else:
+            self.composer_list = list( map(add, self.composer_list, self.subsignals_list[self.comboBox_subsignal.currentIndex()]) )
+        self.graphicsView_sum.plotItem.clearPlots()
+        self.graphicsView_sum.plot(np.arange(0,1000,1), self.composer_list)
+
+    def exporting_to_csv(self):
+        data = {'time': list(np.arange(0,1000,1)),'signal': self.composer_list }
+        df = pd.DataFrame(data, columns= ['time', 'signal'])
+        name = QFileDialog.getSaveFileName(self, 'Save File')
+        df.to_csv (str(name[0]), index = False, header=True)
+    
+    #_____________________________FETCHING DATA______________________#
+    
+    def prepare_data(self):
+        self.browse()
+        data = self.read_data()
+        if self.signal_name in self.signals:
+            pass
+        else:
+            self.signals.update({self.signal_name: data})
         
-        self.sine_wave = self.magnitude * np.sin((2 * np.pi * self.frequency * self.time_range / 1000) + ((np.pi / 180) * self.phase))
-        self.graphicsView_sine.plotItem.clearPlots()
-        self.graphicsView_sine.plot(self.time_range, self.sine_wave)
-
-        return list(self.sine_wave)
-
     def browse(self):
         self.file_path_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', " ", "(*.txt *.csv *.xls)")
         
@@ -81,41 +119,43 @@ class MainApp(QMainWindow, FORM_CLASS):
             # fwf stands for fixed width formatted lines.
             data = pd.read_fwf(self.file_path_name)
             self.signal_name = data.columns[1]
-            yaxis_values = data.iloc[:, 1] # gets second column
+            self.amplitude = data.iloc[:, 1] # gets second column
             # : means everything in dimension1 from the beginning to the end
-            xaxis_timestamps = data.iloc[:, 0]
-            self.interval = xaxis_timestamps[4]- xaxis_timestamps[3]
+            self.timstamps = data.iloc[:, 0]
+            self.interval = self.timestamps[6]- self.timestamps[5]
             
         elif self.file_extension == '.csv':
             data = pd.read_csv(self.file_path_name)
             self.signal_name = data.columns[1]
-            yaxis_values = data.iloc[:, 1] # gets second column
-            xaxis_timestamps = data.iloc[:, 0]
-            self.interval = xaxis_timestamps[2]- xaxis_timestamps[1]
+            self.amplitude = data.iloc[:, 1] # gets second column
+            self.timestamps = data.iloc[:, 0]
+            self.interval = self.timestamps[6]- self.timestamps[5]
         self.sampling_freq = 1000#1/interval
-        xy_axes = {'xaxis': xaxis_timestamps, 'yaxis': yaxis_values}
-        return xy_axes;
-           
-    def enlist_data(self):
-        self.browse()
-        data = self.read_data()
-        if self.signal_name in self.signals:
-            pass
-        else:
-            self.signals.update({self.signal_name: data})
-    
+        # xy_axes = {'xaxis': xaxis_timestamps, 'yaxis': yaxis_values}
+        # return xy_axes;
+
     
     #_________________________PLOTTING SIGNALS___________________________#
+    
+    def draw_sine_wave(self):
+        
+        self.read_slider_values()
+        self.freq_label.setText(str(self.freqency_slider.value()))
+        self.mag_label.setText(str(self.magnitude_slider.value()))
+        self.phase_label.setText(str(self.phase_slider.value()))
+        self.time_range = np.arange(0, 1000, 1)
+        self.sine_wave = self.magnitude * np.sin((2 * np.pi * self.frequency * self.time_range / 1000) + ((np.pi / 180) * self.phase))
+        self.graphicsView_sine.plotItem.clearPlots()
+        self.graphicsView_sine.plot(self.time_range, self.sine_wave)
+
+        return list(self.sine_wave)
         
     def plot_external_wave(self):
-        
-        xy_axes = self.read_data()
-        
-        timestamps = xy_axes['xaxis']
-        amplitude = xy_axes['yaxis']
-        
-        # xaxis = timestamps[:self.n_samples]     # limiting to 1000 samples
-        yaxis = amplitude[:self.n_samples]
+        # xy_axes = self.read_data()
+        # timestamps = xy_axes['xaxis']
+        # amplitude = xy_axes['yaxis']
+        # xaxis = timestamps[:self.n_samples]     
+        yaxis = self.amplitude[:self.n_samples]  # limiting to 1000 samples
         # time_range = np.arange(0, 1000, 1)
         if self.actionPlot.isChecked():
             self.graphicsView_main.plot( self.time_range, yaxis[0:1000], pen = (pg.mkPen('g')))
@@ -129,9 +169,10 @@ class MainApp(QMainWindow, FORM_CLASS):
         # fmax=50
         fmax = self.horizontalSlider.value()
         self.slider_value.setText(str(fmax))
-        xy_axes = self.read_data()
-        timestamps = xy_axes['xaxis']
-        amplitude = xy_axes['yaxis']
+        # xy_axes = self.read_data()
+        # timestamps = xy_axes['xaxis']
+        # amplitude = xy_axes['yaxis']
+        yaxis = self.amplitude[:self.n_samples]
         T = (1 / fmax) *1000
         T_o = self.interval 
         steps_no = int(T / T_o)
@@ -139,7 +180,7 @@ class MainApp(QMainWindow, FORM_CLASS):
         self.y_samples = []
         self.x_samples = []
         for counter in range(num_of_samples):
-            self.y_samples.append(amplitude[np.round(T*counter)])
+            self.y_samples.append(yaxis[int(np.round(T*counter))])
             self.x_samples.append(np.round(T*counter))
         
     def show_samples_on_signal(self):
@@ -172,27 +213,20 @@ class MainApp(QMainWindow, FORM_CLASS):
         self.graphicsView_main.plotItem.clearPlots()
         self.graphicsView_main.plot( self.time_range, self.composer_list, pen = (pg.mkPen(color=(223, 182, 237))))
         self.amplitude = self.composer_list
-        
-        
-        
+        self.interval = 1 #predefined customized interval
+
     def reconstruction(self):
-        # Number of sample points
-        #N = int(1000*fmax)
-        N = int(len(self.x_samples))
-        # sample spacing
-        T = 1.0 / 1000.0
-        x = np.linspace(0.0, N*T, N, endpoint=False)
-        # y = np.sin(50.0 * 2.0*np.pi*x) + 0.5*np.sin(80.0 * 2.0*np.pi*x)
-        #x= x_sampled
+        num_of_samples = int(len(self.x_samples))
+        interval = 1.0 / 1000.0
+        x = np.linspace(0.0, num_of_samples*interval, num_of_samples, endpoint=False)
         y = self.y_samples
-        yf = fft(y)
-        xf = fftfreq(N, T)[:N//2]
-        #import matplotlib.pyplot as plt
-        # self.graphicsView_main.plot(xf, 2.0/N * np.abs(yf[0:N//2]))
-        #scipy.ifft()
-        s = np.fft.ifft(yf)
+        yfreq_domain = fft(y)
+        xfreq_domain = fftfreq(num_of_samples, interval)[:num_of_samples//2]
+        signal = np.fft.ifft(yfreq_domain)
         
-        self.graphicsView_main.plot(self.x_samples, s.real, pen = (pg.mkPen('y')))
+        self.graphicsView_main.plot(self.x_samples, signal.real, pen = (pg.mkPen('y')))
+        
+    #_________________________FAILED MAX-FREQ_____________________________#
         
         # maximum = 0.45
         # index_of_fft= 0
@@ -201,7 +235,8 @@ class MainApp(QMainWindow, FORM_CLASS):
         # 	if maximum/fft  > 124: index_of_fft=i
         # 	i+=1
         # print('fmax = ',xf[index_of_fft])
-
+        
+    #_________________________________UTILITIES_________________________#
     
     def hide_show(self):
         if self.actionHide.isChecked():
@@ -212,89 +247,23 @@ class MainApp(QMainWindow, FORM_CLASS):
     def clear(self):
         self.graphicsView_main.plotItem.clearPlots()
         self.graphicsView_recovered.plotItem.clearPlots()
-        
-    def sine_sliders(self):
-
-        self.phase_slider.setMinimum(0)
-        self.phase_slider.setMaximum(360)
-
-        self.magnitude_slider.setMinimum(2)
-        self.magnitude_slider.setMaximum(20)
-
-        self.freqency_slider.setMinimum(1)
-        self.freqency_slider.setMaximum(600)
-        
-        
-    def adding_to_combobox(self):
-        #print (self.draw_sine_wave())
-        #self.subsignals_list.append(self.draw_sine_wave)
-        #print('sub signal before',self.subsignals_list)
-        self.subsignals_list.append(self.draw_sine_wave())
-        #print('sub signal after appending',self.subsignals_list)
-        #print(len(self.subsignals_list))
-        self.comboBox_subsignal.addItem(f"sine wave: {self.magnitude}Amp,{self.frequency}HZ,and {self.phase}˚ phase")
-
-    def add_to_composer(self):
-        print('index',self.comboBox_subsignal.currentIndex())
-        self.index = int(self.comboBox_subsignal.currentIndex()-1)
-        #print('gjjggj',len(self.subsignals_list))
-        if self.comboBox_subsignal.currentIndex() == -1 :
-            #self.composer_list = self.subsignals_list[self.index]
-            
-            print('0')
-        elif self.comboBox_subsignal.currentIndex() == 0 :
-            self.composer_list=self.subsignals_list[0]
-            print('1')
-        else:
-            print('2')
-            self.composer_list = list( map(add, self.composer_list, self.subsignals_list[self.comboBox_subsignal.currentIndex()]) )
-        #print(self.composer_list,np.array(self.subsignals_list[1]))
-        self.graphicsView_sum.plotItem.clearPlots()
-        self.graphicsView_sum.plot(np.arange(0,1000,1), self.composer_list)
-    
 
     def deleting_from_main_graph(self):
-        #self.composer_list -= self.subsignals_list[self.index]
+
         self.comboBox_subsignal.removeItem(self.comboBox_subsignal.currentIndex())
         if self.comboBox_subsignal.count() != 0 :
             self.composer_list=list(map(sub, self.composer_list, self.subsignals_list[self.comboBox_subsignal.currentIndex()] ))
-            print('before',self.subsignals_list)
             self.subsignals_list.remove(self.subsignals_list[self.comboBox_subsignal.currentIndex()])
-            print('after',self.subsignals_list) 
+            
         self.graphicsView_sum.plotItem.clearPlots()
-        self.graphicsView_sum.plot(np.arange(0,1000,1), self.composer_list)
+        self.graphicsView_sum.plot(self.time_range, self.composer_list)
+        
         if self.comboBox_subsignal.count() == 0 :
             self.graphicsView_sum.plotItem.clearPlots()
             self.composer_list =[]
             self.subsignals_list=[]
-        #if self.composer_list[80] > 10**-12:
 
 
-    def exporting_to_csv(self):
-        data = {'time': list(np.arange(0,1000,1)),'signal': self.composer_list }
-        #print(len(np.arange(0,1000,1)))
-        df = pd.DataFrame(data, columns= ['time', 'signal'])
-        #self.dir_path=QFileDialog.getExistingDirectory(self,"Choose Directory","E:\\")
-        name = QFileDialog.getSaveFileName(self, 'Save File')
-        df.to_csv (str(name[0]), index = False, header=True)
-
-
-# update: for dictionaries
-# append: for lists
-
-###################[ NumPy ]#########################
-# [0]     #means line 0 of your matrix
-# [(0,0)] #means cell at 0,0 of your matrix
-# [0:1]   #means lines 0 to 1 excluded of your matrix
-# [:1]    #excluding the first value means all lines until line 1 excluded
-# [1:]    #excluding the last param mean all lines starting form line 1 
-#          included
-# [:]     #excluding both means all lines
-# [::2]   #the addition of a second ':' is the sampling. (1 item every 2)
-# [::]    #exluding it means a sampling of 1
-# [:,:]   #simply uses a tuple (a single , represents an empty tuple) instead 
-#          of an index.
-   
     
 def main():
     app = QApplication(sys.argv)
