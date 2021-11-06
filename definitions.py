@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 from PyQt5 import QtWidgets
+import matplotlib.pyplot as plt
 from gui import Ui_MainWindow
 from PyQt5.uic import loadUiType
-from scipy.signal import chirp
 from PyQt5 import QtCore, QtGui
+from scipy.fft import fft, fftfreq
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -13,6 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.uic import loadUiType
 import os
 from os import path
+from math import sin
 import sys
 from operator import add , sub 
 
@@ -30,22 +32,21 @@ class MainApp(QMainWindow, FORM_CLASS):
         self.composer_list=[]
         self.signals= dict()
         self.n_samples = 1000
+        self.time_range = np.arange(0, 1000, 1)
         self.add_to_combobox.pressed.connect(self.adding_to_combobox)
         self.add_to_composer_button.pressed.connect(self.add_to_composer)
         self.Exporting_composed_button.pressed.connect(self.exporting_to_csv)
         self.delete_from_combo.pressed.connect(self.deleting_from_main_graph)
         self.sine_sliders()
         self.actionPlot.triggered.connect(self.plot_external_wave)
-        #self.horizontalSlider.valueChanged.connect(self.slider)
         self.actionAdd.triggered.connect(self.enlist_data)
         self.actionClear.triggered.connect(self.clear)
-        # self.actionClear.triggered.connect()
-        #self.pushButton_plotsine.pressed.connect(self.plot_sine_wave)
-        self.actionSample.triggered.connect(self.sample)
-        self.horizontalSlider.valueChanged.connect(self.sample)
+        self.samples_button.pressed.connect(self.show_sample_alone)
+        self.actionSample.triggered.connect(self.show_samples_on_signal)
+        self.horizontalSlider.valueChanged.connect(self.show_sample_alone)
         self.actionHide.triggered.connect(self.hide_show)
-
-        
+        self.pushButton_recover.pressed.connect(self.reconstruction)
+        self.actionConfirm.triggered.connect(self.show_on_main_graph)
         self.phase_slider.valueChanged.connect(self.draw_sine_wave)
         self.freqency_slider.valueChanged.connect(self.draw_sine_wave)
         self.magnitude_slider.valueChanged.connect(self.draw_sine_wave)
@@ -61,7 +62,7 @@ class MainApp(QMainWindow, FORM_CLASS):
         self.freq_label.setText(str(self.freqency_slider.value()))
         self.mag_label.setText(str(self.magnitude_slider.value()))
         self.phase_label.setText(str(self.phase_slider.value()))
-        self.time_range = np.arange(0, 1000, 1)
+        
         self.sine_wave = self.magnitude * np.sin((2 * np.pi * self.frequency * self.time_range / 1000) + ((np.pi / 180) * self.phase))
         self.graphicsView_sine.plotItem.clearPlots()
         self.graphicsView_sine.plot(self.time_range, self.sine_wave)
@@ -94,11 +95,7 @@ class MainApp(QMainWindow, FORM_CLASS):
         self.sampling_freq = 1000#1/interval
         xy_axes = {'xaxis': xaxis_timestamps, 'yaxis': yaxis_values}
         return xy_axes;
-    
-        
-        
-        
-        
+           
     def enlist_data(self):
         self.browse()
         data = self.read_data()
@@ -108,7 +105,8 @@ class MainApp(QMainWindow, FORM_CLASS):
             self.signals.update({self.signal_name: data})
     
     
-    #_________________________PLOTTING SIGNALS___________________________        
+    #_________________________PLOTTING SIGNALS___________________________#
+        
     def plot_external_wave(self):
         
         xy_axes = self.read_data()
@@ -116,10 +114,16 @@ class MainApp(QMainWindow, FORM_CLASS):
         timestamps = xy_axes['xaxis']
         amplitude = xy_axes['yaxis']
         
-        xaxis = timestamps[:self.n_samples]
+        # xaxis = timestamps[:self.n_samples]     # limiting to 1000 samples
         yaxis = amplitude[:self.n_samples]
-        time_range = np.arange(0, 1000, 1)
-        self.graphicsView_main.plot( time_range, yaxis[0:1000], pen = (pg.mkPen('g')))
+        # time_range = np.arange(0, 1000, 1)
+        if self.actionPlot.isChecked():
+            self.graphicsView_main.plot( self.time_range, yaxis[0:1000], pen = (pg.mkPen('g')))
+        else:
+            # self.graphicsView_main.plot( self.time_range, yaxis[0:1000], pen = None)
+            self.graphicsView_main.plotItem.clearPlots()
+            if self.actionSample.isChecked():
+                self.show_samples_on_signal()
         
     def sample(self):
         # fmax=50
@@ -132,28 +136,73 @@ class MainApp(QMainWindow, FORM_CLASS):
         T_o = self.interval 
         steps_no = int(T / T_o)
         num_of_samples = int(1000/T)
-        y_samples = []
-        x_samples = []
-        for counter in range(num_of_samples+1):
-            y_samples.append(amplitude[np.round(T*counter)])
-            x_samples.append(np.round(T*counter))
-                    
-        print(self.interval)
-        print(steps_no)
-        y_sampled = list(amplitude)[0:1000:steps_no]
-        x_sampled = list(timestamps)[0:1000:steps_no]
-        print(self.interval)
-        self.graphicsView_recovered.plotItem.clearPlots()
-        self.graphicsView_recovered.plot(x_samples, y_samples,
-              pen=None,
-              name="BEP",
-              symbol='o',
-              symbolPen=pg.mkPen(color=(0, 0, 255), width=0),                                      
-              symbolBrush=pg.mkBrush(0, 0, 255, 255),
-              symbolSize=7)
+        self.y_samples = []
+        self.x_samples = []
+        for counter in range(num_of_samples):
+            self.y_samples.append(amplitude[np.round(T*counter)])
+            self.x_samples.append(np.round(T*counter))
+        
+    def show_samples_on_signal(self):
+        self.sample()
+        if self.actionSample.isChecked():
+            self.graphicsView_main.plot(self.x_samples, self.y_samples,
+                  pen=None,
+                  name="BEP",
+                  symbol='+',
+                  symbolPen=pg.mkPen(color=(0, 0, 255), width=0),                                      
+                  symbolBrush=pg.mkBrush(0, 0, 255, 255),
+                  symbolSize=7)
+            
+    def show_sample_alone(self):
+        self.sample()
+        if not self.samples_button.isChecked():
+            self.graphicsView_recovered.plotItem.clearPlots()
+            self.graphicsView_recovered.plot(self.x_samples, self.y_samples,
+                  pen=None,
+                  name="BEP",
+                  symbol='o',
+                  symbolPen=pg.mkPen(color=(0, 0, 255), width=0),                                      
+                  symbolBrush=pg.mkBrush(0, 0, 255, 255),
+                  symbolSize=7)
+        else :
+            self.graphicsView_recovered.plotItem.clearPlots()
+            
+    def show_on_main_graph(self):
+        data = {'time': list(np.arange(0,1000,1)),'signal': self.composer_list }
+        self.graphicsView_main.plotItem.clearPlots()
+        self.graphicsView_main.plot( self.time_range, self.composer_list, pen = (pg.mkPen(color=(223, 182, 237))))
+        self.amplitude = self.composer_list
         
         
         
+    def reconstruction(self):
+        # Number of sample points
+        #N = int(1000*fmax)
+        N = int(len(self.x_samples))
+        # sample spacing
+        T = 1.0 / 1000.0
+        x = np.linspace(0.0, N*T, N, endpoint=False)
+        # y = np.sin(50.0 * 2.0*np.pi*x) + 0.5*np.sin(80.0 * 2.0*np.pi*x)
+        #x= x_sampled
+        y = self.y_samples
+        yf = fft(y)
+        xf = fftfreq(N, T)[:N//2]
+        #import matplotlib.pyplot as plt
+        # self.graphicsView_main.plot(xf, 2.0/N * np.abs(yf[0:N//2]))
+        #scipy.ifft()
+        s = np.fft.ifft(yf)
+        
+        self.graphicsView_main.plot(self.x_samples, s.real, pen = (pg.mkPen('y')))
+        
+        # maximum = 0.45
+        # index_of_fft= 0
+        # i=0
+        # for fft in poly_y:
+        # 	if maximum/fft  > 124: index_of_fft=i
+        # 	i+=1
+        # print('fmax = ',xf[index_of_fft])
+
+    
     def hide_show(self):
         if self.actionHide.isChecked():
             self.graphicsView_recovered.setVisible(True)
@@ -163,20 +212,6 @@ class MainApp(QMainWindow, FORM_CLASS):
     def clear(self):
         self.graphicsView_main.plotItem.clearPlots()
         self.graphicsView_recovered.plotItem.clearPlots()
-        
-        
-    '''def plot_sine_wave(self):
-        print('I\'m pressed');
-        time = np.linspace(0, 10, 1000)
-        wave = chirp(time, f0=6, f1=1, t1=10)
-        self.graphicsView_sine.plot(time, wave, pen=(pg.mkPen('r')))
-'''
-        # time_range = np.arange(0, 1000, 1)
-        # self.sine_wave = self.magnitude * np.sin((2 * np.pi * self.frequency * time_range / 4000) + ((np.pi / 180) * self.phase))
-        
-    def summation_to_main_graph(self):
-        pass
-
         
     def sine_sliders(self):
 
@@ -188,6 +223,8 @@ class MainApp(QMainWindow, FORM_CLASS):
 
         self.freqency_slider.setMinimum(1)
         self.freqency_slider.setMaximum(600)
+        
+        
     def adding_to_combobox(self):
         #print (self.draw_sine_wave())
         #self.subsignals_list.append(self.draw_sine_wave)
@@ -242,13 +279,6 @@ class MainApp(QMainWindow, FORM_CLASS):
         df.to_csv (str(name[0]), index = False, header=True)
 
 
-        '''
-        file = open(name,'w')
-        text = self.textEdit.toPlainText()
-        file.write(text)
-        file.close()'''
-
-
 # update: for dictionaries
 # append: for lists
 
@@ -273,14 +303,3 @@ def main():
     app.exec_()
 if __name__ == '__main__':
     main()
-'''
-            self.composer_list = self.composer_list + self.subsignals_list[self.comboBox_subsignal.currentIndex()]
-            #self.composer_list = np.array(self.composer_list)
-            #self.subsignals_list[self.index] = np.array(self.subsignals_list[self.index])
-            it=0
-            for i , j in self.subsignals_list[self.index] , self.composer_list:
-                composer_list [it] = i+j
-                it += 1
-            #self.composer_list += self.subsignals_list[self.index]
-        #print('composer',self.composer_list,'subsignal',self.subsignals_list)'''
-        
