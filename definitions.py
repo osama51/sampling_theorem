@@ -69,6 +69,7 @@ class MainApp(QMainWindow, FORM_CLASS):
 
         self.freqency_slider.setMinimum(1)
         self.freqency_slider.setMaximum(600)
+
     
     def read_slider_values(self):
         self.phase = self.phase_slider.value()
@@ -133,6 +134,7 @@ class MainApp(QMainWindow, FORM_CLASS):
         self.sampling_freq = 1000#1/interval
         # xy_axes = {'xaxis': xaxis_timestamps, 'yaxis': yaxis_values}
         # return xy_axes;
+        self.getting_max_freq()
 
     
     #_________________________PLOTTING SIGNALS___________________________#
@@ -164,6 +166,19 @@ class MainApp(QMainWindow, FORM_CLASS):
             self.graphicsView_main.plotItem.clearPlots()
             if self.actionSample.isChecked():
                 self.show_samples_on_signal()
+                
+                
+    def getting_max_freq(self):
+        self.number_of_samples = len (self.amplitude) 
+        self.amp_of_freqs = fft(list(self.amplitude))
+        self.freqs = fftfreq(len(self.amp_of_freqs),self.interval)[:self.number_of_samples//2] 
+        threshold = 0.5 * max(abs(self.amp_of_freqs))
+        mask = abs(self.amp_of_freqs) > threshold
+        peaks = self.freqs[mask[:self.number_of_samples//2]]
+        peaks = abs(peaks)
+        self.max_freq= max(peaks)*1000
+        self.horizontalSlider.setMaximum(int(3*self.max_freq))
+        
         
     def sample(self):
         # fmax=50
@@ -209,11 +224,12 @@ class MainApp(QMainWindow, FORM_CLASS):
             self.graphicsView_recovered.plotItem.clearPlots()
             
     def show_on_main_graph(self):
-        data = {'time': list(np.arange(0,1000,1)),'signal': self.composer_list }
+        # data = {'time': list(np.arange(0,1000,1)),'signal': self.composer_list }
         self.graphicsView_main.plotItem.clearPlots()
         self.graphicsView_main.plot( self.time_range, self.composer_list, pen = (pg.mkPen(color=(223, 182, 237))))
         self.amplitude = self.composer_list
         self.interval = 1 #predefined customized interval
+        self.getting_max_freq()
 
     def reconstruction(self):
         num_of_samples = int(len(self.x_samples))
