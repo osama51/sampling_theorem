@@ -68,7 +68,7 @@ class MainApp(QMainWindow, FORM_CLASS):
         self.magnitude_slider.setMaximum(20)
 
         self.freqency_slider.setMinimum(1)
-        self.freqency_slider.setMaximum(600)
+        self.freqency_slider.setMaximum(5000)
 
     
     def read_slider_values(self):
