@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Signal Sampling
 
 A signal composer app with multiple functions to deal with the composed signal.
@@ -25,8 +24,3 @@ A signal composer app with multiple functions to deal with the composed signal.
 ## To Run
 
 Run `definitions.py` file.
-
-=======
-# sampling_theorem
-Signal Sampling - Composition - Reconstruction
->>>>>>> b3eeeaf608786c9fd08408c52bdc07fc0293e405
